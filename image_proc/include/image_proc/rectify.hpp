@@ -53,6 +53,7 @@ public:
 
 private:
   image_transport::CameraSubscriber sub_camera_;
+  rclcpp::TimerBase::SharedPtr check_connection_timer_;
 
   int queue_size_;
   int interpolation;
@@ -62,7 +63,7 @@ private:
   // Processing state (note: only safe because we're using single-threaded NodeHandle!)
   image_geometry::PinholeCameraModel model_;
 
-  void subscribeToCamera();
+  void connectCb();
   void imageCb(
     const sensor_msgs::msg::Image::ConstSharedPtr & image_msg,
     const sensor_msgs::msg::CameraInfo::ConstSharedPtr & info_msg);

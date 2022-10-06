@@ -48,6 +48,7 @@ public:
 
 private:
   image_transport::Subscriber sub_raw_;
+  rclcpp::TimerBase::SharedPtr check_connection_timer_;
 
   int debayer_;
 

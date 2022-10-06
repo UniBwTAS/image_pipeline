@@ -43,6 +43,8 @@
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 
+using namespace std::chrono_literals;
+
 namespace image_proc
 {
 
@@ -52,27 +54,24 @@ RectifyNode::RectifyNode(const rclcpp::NodeOptions & options)
   queue_size_ = this->declare_parameter("queue_size", 5);
   interpolation = this->declare_parameter("interpolation", 1);
   pub_rect_ = image_transport::create_publisher(this, "image_rect");
-  subscribeToCamera();
+
+  // TODO: replace this with ROS2 connection callbacks once available
+  check_connection_timer_ =
+    this->create_wall_timer(500ms, std::bind(&RectifyNode::connectCb, this));
 }
 
 // Handles (un)subscribing when clients (un)subscribe
-void RectifyNode::subscribeToCamera()
+void RectifyNode::connectCb()
 {
   std::lock_guard<std::mutex> lock(connect_mutex_);
-
-  /*
-  *  SubscriberStatusCallback not yet implemented
-  *
-  if (pub_rect_.getNumSubscribers() == 0)
+  if (pub_rect_.getNumSubscribers() == 0) {
     sub_camera_.shutdown();
-  else if (!sub_camera_)
-  {
-  */
-  sub_camera_ = image_transport::create_camera_subscription(
-    this, "image", std::bind(
-      &RectifyNode::imageCb,
-      this, std::placeholders::_1, std::placeholders::_2), "raw");
-  // }
+  } else if (!sub_camera_) {
+    sub_camera_ = image_transport::create_camera_subscription(
+      this, "image", std::bind(
+        &RectifyNode::imageCb,
+        this, std::placeholders::_1, std::placeholders::_2), "raw");
+  }
 }
 
 void RectifyNode::imageCb(

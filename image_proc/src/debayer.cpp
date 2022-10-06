@@ -45,21 +45,34 @@
 #include <sensor_msgs/image_encodings.hpp>
 #include <sensor_msgs/msg/image.hpp>
 
+using namespace std::chrono_literals;
+
 namespace image_proc
 {
 
 DebayerNode::DebayerNode(const rclcpp::NodeOptions & options)
 : Node("DebayerNode", options)
 {
-  sub_raw_ = image_transport::create_subscription(
-    this, "image_raw",
-    std::bind(
-      &DebayerNode::imageCb, this,
-      std::placeholders::_1), "raw");
-
   pub_mono_ = image_transport::create_publisher(this, "image_mono");
   pub_color_ = image_transport::create_publisher(this, "image_color");
   debayer_ = this->declare_parameter("debayer", 3);
+
+  // TODO: replace this with ROS2 connection callbacks once available
+  check_connection_timer_ =
+    this->create_wall_timer(500ms, std::bind(&DebayerNode::connectCb, this));
+}
+
+void DebayerNode::connectCb()
+{
+  if (pub_mono_.getNumSubscribers() == 0 && pub_color_.getNumSubscribers() == 0) {
+    sub_raw_.shutdown();
+  } else if (!sub_raw_) {
+    sub_raw_ = image_transport::create_subscription(
+      this, "image_raw",
+      std::bind(
+        &DebayerNode::imageCb, this,
+        std::placeholders::_1), "raw");
+  }
 }
 
 void DebayerNode::imageCb(const sensor_msgs::msg::Image::ConstSharedPtr & raw_msg)
